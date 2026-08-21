@@ -1,0 +1,8 @@
+config.json
+*.log
+__pycache__/
+*.py[cod]
+Output/*
+!Output/.gitkeep
+Required Data/*.xlsx
+Required Data/Empty Template File/*.xlsx

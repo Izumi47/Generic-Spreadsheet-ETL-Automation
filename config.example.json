@@ -1,0 +1,244 @@
+{
+  "application": {
+    "name": "Generic Spreadsheet ETL Automation",
+    "source_file": "Required Data/source_workbook.xlsx",
+    "source_sheet": "SourceData",
+    "mapping_file": "Required Data/mapping_workbook.xlsx",
+    "mapping_sheet": "Mapping",
+    "entity_column": "Entity Code",
+    "filter_source_to_entity": true,
+    "output_directory": "Output",
+    "template_directory": "Required Data/Empty Template File"
+  },
+  "processing": {
+    "filter_column": "Processing Status",
+    "filter_blank_only": true,
+    "eligible_filter_values": [],
+    "trim_trailing_rows": 0,
+    "excluded_first_column_values": ["Total"],
+    "required_source_columns": [
+      "Record ID",
+      "Entity Code",
+      "Reference",
+      "Start Date",
+      "End Date",
+      "Amount",
+      "Cost Center"
+    ],
+    "validate_complete_rows": true,
+    "stop_on_incomplete": true,
+    "date_window": {
+      "enabled": false,
+      "start_column": "Start Date",
+      "end_column": "End Date",
+      "mode": "active_month"
+    }
+  },
+  "output": {
+    "folder_template": "{year}/{month_name}/{entity_code}",
+    "filename_template": "{number:02d}_{step_name}_{month_tag}.xlsx",
+    "month_tag_format": "%m%y",
+    "date_columns": [
+      "Start Date",
+      "End Date",
+      "Period From",
+      "Period To"
+    ]
+  },
+  "step_order": [
+    "allocation",
+    "record",
+    "charge",
+    "ledger"
+  ],
+  "steps": {
+    "allocation": {
+      "number": 1,
+      "name": "Allocation",
+      "template_file": "02_Allocation_Addition.xlsx",
+      "template_sheet": "Allocations",
+      "lookup_sheet": "Lookup Values",
+      "lookup_header_row": 0,
+      "lookup_output_sheet": "Lookup Values",
+      "dropdown_columns": [
+        "Allocation 1",
+        "Allocation 2",
+        "Allocation 3",
+        "Allocation 4",
+        "Status"
+      ],
+      "source_columns": {
+        "entity": "Entity Code",
+        "record": "Record ID",
+        "cost_center": "Cost Center"
+      },
+      "output_columns": {
+        "id": "SourceImportID"
+      },
+      "id_template": "{entity_code}{counter}{record}",
+      "lookup_rules": [
+        {
+          "output_column": "Allocation 1",
+          "lookup_column": "Allocation 1",
+          "source_columns": ["Entity Code"],
+          "joiner": "",
+          "contains": false
+        },
+        {
+          "output_column": "Allocation 2",
+          "lookup_column": "Allocation 2",
+          "source_columns": ["Entity Code", "Cost Center"],
+          "joiner": " - ",
+          "contains": true,
+          "right_side": true
+        }
+      ],
+      "default_values": {
+        "Allocation 3": "No lookup required",
+        "Allocation 4": "No lookup required",
+        "Status": null,
+        "Use Type": null,
+        "Cost Percent": 100,
+        "Head Count": 0,
+        "Space Percent": null
+      }
+    },
+    "record": {
+      "number": 2,
+      "name": "Record",
+      "template_file": "01_Record_Addition.xlsx",
+      "template_sheet": "Records",
+      "source_columns": {
+        "reference": "Reference",
+        "start_date": "Start Date",
+        "end_date": "End Date"
+      },
+      "output_columns": {
+        "id": "A",
+        "record_code": "B",
+        "start_date": "F",
+        "end_date": "G",
+        "reference": "L",
+        "active": "K"
+      },
+      "id_template": "{entity_code}{counter}{reference}",
+      "record_code_template": "{entity_code}_{identifier_prefix}",
+      "mapping_prefix_column": "Identifier Prefix",
+      "mapping_assignments": {
+        "C": "Category",
+        "D": "Type",
+        "E": "Source",
+        "H": "Attribute 1",
+        "I": "Attribute 2",
+        "J": "Attribute 3",
+        "K": "Active",
+        "M": "Attribute 4",
+        "N": "Attribute 5",
+        "O": "Attribute 6",
+        "P": "Attribute 7"
+      },
+      "source_assignments": {
+        "F": "start_date",
+        "G": "end_date",
+        "L": "reference"
+      },
+      "boolean_output_columns": ["K"]
+    },
+    "charge": {
+      "number": 3,
+      "name": "Charge",
+      "template_file": "03_Charge_Addition.xlsx",
+      "template_sheet": "Charges",
+      "source_columns": {
+        "reference": "Reference",
+        "start_date": "Start Date",
+        "end_date": "End Date",
+        "amount": "Amount"
+      },
+      "output_columns": {
+        "generated_id": "A",
+        "source_id": "B"
+      },
+      "source_assignments": {
+        "F": "start_date",
+        "G": "end_date",
+        "H": "amount"
+      },
+      "mapping_assignments": {
+        "C": "Charge Type",
+        "D": "Payment Frequency",
+        "E": "Category",
+        "I": "Currency",
+        "J": "Measure",
+        "L": "Proration",
+        "Q": "Source"
+      },
+      "mapping_prefix_column": "Identifier Prefix",
+      "source_id_template": "{prefix}{counter}{reference}",
+      "generated_id_template": "{source_id}{start_serial}{amount}"
+    },
+    "ledger": {
+      "number": 4,
+      "name": "Ledger",
+      "template_file": "04_Ledger_Addition.xlsx",
+      "template_sheet": "Ledger",
+      "source_columns": {
+        "record": "Record ID",
+        "start_date": "Start Date",
+        "end_date": "End Date"
+      },
+      "output_columns": {
+        "generated_id": "SourceImportID",
+        "record_code": "RecordCode",
+        "start_date": "Period From",
+        "end_date": "Period To"
+      },
+      "expected_headers": [
+        "SourceImportID",
+        "RecordCode",
+        "Classification",
+        "Ledger Profile",
+        "Period From",
+        "Period To",
+        "Include Initial Charge",
+        "Currency",
+        "Comments",
+        "Charge Type",
+        "Adjustment",
+        "Rate Profile",
+        "Rate",
+        "Payment Timing",
+        "Amount",
+        "Residual Value",
+        "Test A",
+        "Test B",
+        "Test C",
+        "Economic Life",
+        "Functional Currency",
+        "Exchange Rate",
+        "Frequency",
+        "Estimated Residual Value",
+        "Third Party Guarantee",
+        "Exemption",
+        "Guaranteed Amount",
+        "Impaired",
+        "Reporting Exception",
+        "Exception Reason"
+      ],
+      "mapping_assignments": {
+        "Classification": "Category",
+        "Ledger Profile": "Ledger Profile",
+        "Include Initial Charge": "Include Initial Charge",
+        "Currency": "Currency",
+        "Charge Type": "Charge Type",
+        "Functional Currency": "Currency",
+        "Frequency": "Frequency"
+      },
+      "constants": {
+        "Exchange Rate": 1
+      },
+      "id_prefix": "Ledger_",
+      "record_code_template": "{entity_code}{counter}{record}"
+    }
+  }
+}
